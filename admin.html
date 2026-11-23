@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>后台监控 · 炸金花 / 斗牛</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#070d0a;color:#e8f5ef;min-height:100vh;padding:14px}
+.hidden{display:none!important}
+
+#login{max-width:340px;margin:15vh auto;text-align:center}
+#login h1{font-size:24px;letter-spacing:4px;margin-bottom:6px;
+  background:linear-gradient(90deg,#3ecf8e,#6ea8ff);-webkit-background-clip:text;
+  background-clip:text;color:transparent;font-weight:800}
+#login p{color:#6e8a7c;font-size:12px;margin-bottom:24px}
+.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:18px}
+input{width:100%;padding:12px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);color:#fff;font-size:14px;outline:none}
+input:focus{border-color:#3ecf8e}
+.btn{padding:12px 18px;border-radius:9px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.08);color:#e8f5ef;font-size:14px;font-weight:600;
+  cursor:pointer;transition:.15s;font-family:inherit;width:100%;margin-top:12px}
+.btn:hover{background:rgba(255,255,255,.15)}
+.btn.primary{background:linear-gradient(135deg,#3ecf8e,#22a06b);border:none;color:#04120d}
+
+#main{max-width:1200px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+header .title{font-weight:800;font-size:16px;letter-spacing:1px}
+header .title span{color:#3ecf8e}
+.stats{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
+.stat{background:rgba(0,0,0,.35);padding:5px 12px;border-radius:20px;
+  border:1px solid rgba(255,255,255,.1)}
+.stat b{color:#ffd76e;font-size:14px;margin-left:4px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:#3ecf8e;margin-right:5px;vertical-align:middle}
+.dot.off{background:#d64a4a}
+
+#rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.empty{grid-column:1/-1;text-align:center;color:#5d776b;padding:50px 20px;
+  font-size:14px;background:rgba(255,255,255,.03);border-radius:14px;
+  border:1px dashed rgba(255,255,255,.1)}
+
+.room{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;overflow:hidden;transition:.2s}
+.room.playing{border-color:rgba(62,207,142,.4);box-shadow:0 0 20px rgba(62,207,142,.1)}
+.room.ended{opacity:.85}
+.room-head{padding:10px 14px;background:rgba(0,0,0,.25);display:flex;
+  justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.room-id{font-weight:800;font-size:15px;letter-spacing:2px;color:#ffd76e}
+.room-meta{font-size:11px;color:#7fae9a;display:flex;gap:10px;flex-wrap:wrap}
+.room-meta b{color:#3ecf8e}
+.tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;
+  background:rgba(62,207,142,.2);color:#3ecf8e;border:1px solid rgba(62,207,142,.35)}
+.tag.wait{background:rgba(255,215,110,.15);color:#ffd76e;border-color:rgba(255,215,110,.35)}
+.tag.ended{background:rgba(150,150,150,.15);color:#9ab3a5;border-color:rgba(150,150,150,.3)}
+
+.plist{display:flex;flex-direction:column}
+.prow{display:grid;grid-template-columns:80px 1fr auto;gap:10px;align-items:center;
+  padding:9px 14px;border-top:1px solid rgba(255,255,255,.05);font-size:12px}
+.prow.turn{background:rgba(62,207,142,.07);box-shadow:inset 3px 0 0 #3ecf8e}
+.prow.folded{opacity:.4}
+.prow .pname{font-weight:700;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.prow .pname .badge{font-size:8px;background:#ffd76e;color:#04120d;
+  padding:1px 5px;border-radius:5px;font-weight:800}
+.prow .pname .badge.dc{background:#d64a4a;color:#fff}
+.prow .pchips{color:#7fae9a;font-size:10px;margin-top:2px;font-weight:400}
+.prow .pcards{display:flex;gap:3px;flex-wrap:wrap}
+.prow .ptype{font-size:11px;font-weight:700;color:#ffd76e;white-space:nowrap;
+  padding:3px 8px;border-radius:8px;background:rgba(255,215,110,.1);
+  border:1px solid rgba(255,215,110,.2);text-align:center;min-width:56px}
+.prow .ptype.none{color:#5d776b;background:transparent;border-color:transparent}
+.prow .ptype.big{color:#04120d;background:#ffd76e;border-color:#ffd76e}
+
+.pc{width:26px;height:36px;border-radius:5px;background:linear-gradient(160deg,#fff,#dde5e1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;color:#1a1a1a;font-size:10px;line-height:1;flex:none;
+  box-shadow:0 2px 5px rgba(0,0,0,.4)}
+.pc.red{color:#d63333}
+.pc .s{font-size:9px;margin-top:1px}
+
+.room-foot{padding:8px 14px;font-size:10px;color:#5d776b;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.room-foot b{color:#9ab3a5}
+
+@media(max-width:600px){
+  #rooms{grid-template-columns:1fr}
+  header .title{font-size:14px}
+  .prow{grid-template-columns:64px 1fr auto;padding:8px 10px}
+  .pc{width:22px;height:31px;font-size:9px}
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>后台监控</h1>
+  <p>实时查看所有房间的手牌与牌型</p>
+  <div class="card">
+    <input id="adminKey" type="password" placeholder="管理员密钥" autocomplete="off">
+    <button class="btn primary" onclick="doLogin()">进入监控</button>
+  </div>
+</div>
+
+<div id="main" class="hidden">
+  <header>
+    <div class="title">实时监控 <span>· 炸金花 / 斗牛</span></div>
+    <div class="stats">
+      <div class="stat"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
+      <div class="stat">房间<b id="statRooms">0</b></div>
+      <div class="stat">玩家<b id="statPlayers">0</b></div>
+      <div class="stat">进行中<b id="statPlaying">0</b></div>
+    </div>
+  </header>
+  <div id="rooms"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const $ = id => document.getElementById(id);
+const SUITS = ['♠','♥','♣','♦'];
+const RANK_STR = {11:'J',12:'Q',13:'K',14:'A'};
+const rankStr = r => RANK_STR[r] || r;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let adminKey = localStorage.getItem('adminKey') || '';
+let lastSnap = null;
+
+socket.on('connect', () => {
+  $('connDot').classList.remove('off');
+  $('connText').textContent = '已连接';
+  if (adminKey) doSubscribe(adminKey);
+});
+socket.on('disconnect', () => {
+  $('connDot').classList.add('off');
+  $('connText').textContent = '已断开';
+});
+
+function doLogin(){
+  const key = $('adminKey').value.trim();
+  if (!key) return alert('请输入密钥');
+  doSubscribe(key);
+}
+function doSubscribe(key){
+  socket.emit('admin:subscribe', { key }, res => {
+    if (!res.ok) {
+      alert('密钥错误：' + res.msg);
+      localStorage.removeItem('adminKey');
+      adminKey = '';
+      return;
+    }
+    adminKey = key;
+    localStorage.setItem('adminKey', key);
+    $('login').classList.add('hidden');
+    $('main').classList.remove('hidden');
+  });
+}
+$('adminKey').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+socket.on('admin:state', snap => {
+  lastSnap = snap;
+  render();
+});
+
+function render(){
+  if (!lastSnap) return;
+  const rooms = lastSnap.rooms || [];
+  const totalPlayers = rooms.reduce((a, r) => a + r.players.length, 0);
+  const playing = rooms.filter(r => r.state === 'playing').length;
+  $('statRooms').textContent = rooms.length;
+  $('statPlayers').textContent = totalPlayers;
+  $('statPlaying').textContent = playing;
+
+  const box = $('rooms');
+  if (!rooms.length){
+    box.innerHTML = `<div class="empty">当前没有房间，等待玩家创建…</div>`;
+    return;
+  }
+  const order = { playing: 0, waiting: 1, ended: 2 };
+  rooms.sort((a, b) => (order[a.state] ?? 9) - (order[b.state] ?? 9));
+  box.innerHTML = rooms.map(roomHTML).join('');
+}
+
+function roomHTML(r){
+  const tagMap = {
+    waiting: '<span class="tag wait">等待开始</span>',
+    playing: '<span class="tag">进行中</span>',
+    ended:   '<span class="tag ended">已结束</span>'
+  };
+  const cardCount = r.gameType === 'niuniu' ? 5 : 3;
+  const players = r.players.slice().sort((a, b) => {
+    if (a.folded !== b.folded) return a.folded ? 1 : -1;
+    return 0;
+  });
+
+  const rows = players.map(p => {
+    let badges = '';
+    if (p.isHost) badges += '<span class="badge">房主</span>';
+    if (!p.connected) badges += '<span class="badge dc">离线</span>';
+
+    const cards = (p.cards || []).map(c => {
+      const red = c.s === 1 || c.s === 3;
+      return `<div class="pc ${red ? 'red' : ''}">
+        <span>${rankStr(c.r)}</span><span class="s">${SUITS[c.s]}</span>
+      </div>`;
+    }).join('') || '<span style="color:#5d776b;font-size:10px">未发牌</span>';
+
+    let typeCls = 'ptype';
+    if (!p.handName) typeCls += ' none';
+    else if (['豹子','顺金','五小牛','炸弹','五花牛','牛牛'].includes(p.handName)) typeCls += ' big';
+
+    return `<div class="prow ${p.isTurn ? 'turn' : ''} ${p.folded ? 'folded' : ''}">
+      <div>
+        <div class="pname">${esc(p.name)} ${badges}</div>
+        <div class="pchips">💰 ${p.chips}</div>
+      </div>
+      <div class="pcards">${cards}</div>
+      <div class="${typeCls}">${p.handName ? esc(p.handName) : '—'}</div>
+    </div>`;
+  }).join('');
+
+  const time = new Date(lastSnap.updatedAt).toLocaleTimeString('zh-CN');
+  return `<div class="room ${r.state}">
+    <div class="room-head">
+      <div>
+        <div class="room-id">#${esc(r.id)}</div>
+        <div class="room-meta">
+          <span>${esc(r.gameName)}</span>
+          <span>底池 <b>${r.pot}</b></span>
+          <span>${r.gameType === 'niuniu' ? '底注' : '当前注'} <b>${r.currentBet}</b></span>
+        </div>
+      </div>
+      ${tagMap[r.state] || ''}
+    </div>
+    <div class="plist">${rows || '<div class="prow" style="color:#5d776b">暂无玩家</div>'}</div>
+    <div class="room-foot">
+      <span>玩家 ${r.players.length} 人 · 牌数 ${cardCount}</span>
+      <span>更新 <b>${time}</b></span>
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>炸金花 · 斗牛</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:radial-gradient(circle at 50% -10%,#124a37,#04120d 65%);
+  color:#e8f5ef;min-height:100vh;padding:12px}
+.hidden{display:none!important}
+
+#lobby{max-width:420px;margin:6vh auto;text-align:center}
+#lobby h1{font-size:32px;letter-spacing:5px;margin-bottom:6px;
+  background:linear-gradient(90deg,#ffd76e,#ff9d3c);-webkit-background-clip:text;
+  background-clip:text;color:transparent;font-weight:800}
+#lobby p.sub{color:#7fae9a;font-size:13px;margin-bottom:24px;letter-spacing:2px}
+.panel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:20px;backdrop-filter:blur(8px)}
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-size:12px;color:#7fae9a;margin-bottom:6px}
+input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.3);color:#fff;font-size:15px;outline:none;transition:.2s}
+input:focus{border-color:#3ecf8e;box-shadow:0 0 0 3px rgba(62,207,142,.15)}
+.btn{padding:11px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.08);color:#e8f5ef;font-size:14px;font-weight:600;
+  cursor:pointer;transition:.15s;font-family:inherit}
+.btn:hover:not(:disabled){background:rgba(255,255,255,.16);transform:translateY(-1px)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.primary{background:linear-gradient(135deg,#3ecf8e,#22a06b);border-color:transparent;color:#04120d}
+.btn.danger{background:rgba(220,60,60,.2);border-color:rgba(220,60,60,.4);color:#ff9a9a}
+.btn.warn{background:rgba(255,180,60,.18);border-color:rgba(255,180,60,.4);color:#ffce7d}
+.btn.full{width:100%;padding:14px}
+
+.game-select{display:flex;gap:10px}
+.game-btn{flex:1;padding:14px 8px;border-radius:12px;border:2px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.25);color:#9fb3c8;font-size:14px;font-weight:700;
+  cursor:pointer;transition:.2s;font-family:inherit;text-align:center}
+.game-btn .sub{display:block;font-size:10px;font-weight:400;color:#6e8a7c;margin-top:3px}
+.game-btn.active{border-color:#3ecf8e;background:rgba(62,207,142,.12);color:#e8f5ef}
+.game-btn.active .sub{color:#3ecf8e}
+
+#game{max-width:980px;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;background:rgba(255,255,255,.05);border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);margin-bottom:14px;font-size:13px;flex-wrap:wrap;gap:8px}
+.topbar b{color:#ffd76e;font-size:16px}
+.chip{background:rgba(0,0,0,.3);padding:5px 12px;border-radius:20px;
+  border:1px solid rgba(255,255,255,.1);white-space:nowrap}
+.chip span{color:#3ecf8e;font-weight:700}
+.chip.game{color:#ffd76e;font-weight:700}
+
+#opponents{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:16px}
+.pcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:10px;min-width:118px;text-align:center;transition:.2s}
+.pcard.turn{border-color:#3ecf8e;box-shadow:0 0 0 2px rgba(62,207,142,.25),0 0 22px rgba(62,207,142,.2)}
+.pcard.folded{opacity:.35;filter:grayscale(1)}
+.pcard .name{font-weight:700;font-size:13px;margin-bottom:2px;display:flex;
+  justify-content:center;align-items:center;gap:4px;flex-wrap:wrap}
+.pcard .chips{font-size:11px;color:#7fae9a}
+.pcard .cards{display:flex;gap:4px;justify-content:center;margin:8px 0 6px}
+.pcard .status{font-size:11px;color:#ffd76e;min-height:14px}
+.badge{font-size:9px;background:#ffd76e;color:#04120d;padding:1px 5px;border-radius:6px;font-weight:800}
+.badge.look{background:#6ea8ff;color:#04120d}
+
+.card{width:44px;height:60px;border-radius:7px;
+  background:linear-gradient(160deg,#ffffff,#dde5e1);color:#1a1a1a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.45);user-select:none;
+  font-size:15px;line-height:1.1;flex:none}
+.card .s{font-size:13px}
+.card.red{color:#d63333}
+.card.back{background:repeating-linear-gradient(45deg,#1e4d8c,#1e4d8c 5px,#153a6b 5px,#153a6b 10px);
+  border:2px solid #5d94e8;color:transparent}
+.cards-5 .card{width:30px;height:42px;font-size:11px;border-radius:5px}
+.cards-5 .card .s{font-size:9px}
+.mebox .cards .card{width:56px;height:78px;font-size:18px}
+.mebox .cards .card .s{font-size:15px}
+.mebox .cards.cards-5 .card{width:44px;height:61px;font-size:14px}
+.mebox .cards.cards-5 .card .s{font-size:11px}
+
+#meArea{display:flex;justify-content:center;margin-bottom:14px}
+.mebox{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.3);
+  border-radius:16px;padding:14px 22px;text-align:center;min-width:260px}
+.mebox .cards{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.mebox .name{font-weight:800;font-size:15px}
+.mebox .chips{font-size:12px;color:#7fae9a;margin-top:2px}
+
+#actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px}
+#actions .hint{color:#7fae9a;font-size:14px;padding:12px;text-align:center;width:100%}
+#raiseBox{display:flex;gap:8px;align-items:center;width:100%;justify-content:center;margin-top:6px}
+#raiseBox input{width:110px;padding:10px}
+.btn.nn{padding:10px 14px;font-size:13px}
+.btn.nn b{display:block;font-size:11px;color:#7fae9a;font-weight:400;margin-top:1px}
+
+#log{background:rgba(0,0,0,.25);border-radius:12px;padding:10px 14px;
+  font-size:12px;color:#8fbfaa;max-height:120px;overflow-y:auto;line-height:1.7;
+  border:1px solid rgba(255,255,255,.06)}
+#log div:last-child{color:#e8f5ef}
+
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;
+  align-items:center;justify-content:center;z-index:99;padding:20px}
+#modal .box{background:#0d2b21;border:1px solid rgba(255,255,255,.15);
+  border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;min-width:240px}
+#modal h3{font-size:15px;margin-bottom:6px;color:#ffd76e;text-align:center}
+
+#toast{position:fixed;left:50%;top:24px;transform:translateX(-50%);
+  background:rgba(220,60,60,.95);color:#fff;padding:10px 20px;border-radius:10px;
+  font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;font-weight:600}
+#toast.show{opacity:1}
+
+@media(max-width:560px){
+  .card{width:36px;height:50px;font-size:12px}
+  .cards-5 .card{width:26px;height:36px;font-size:10px}
+  .mebox .cards .card{width:46px;height:64px;font-size:15px}
+  .mebox .cards.cards-5 .card{width:36px;height:50px;font-size:12px}
+  .pcard{min-width:98px;padding:8px}
+  #lobby h1{font-size:26px}
+  .btn.nn{padding:8px 10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div id="lobby">
+  <h1>炸 金 花 · 斗 牛</h1>
+  <p class="sub">和好友一起玩</p>
+  <div class="panel">
+    <div class="field">
+      <label>你的昵称</label>
+      <input id="nickname" maxlength="10" placeholder="输入昵称">
+    </div>
+    <div class="field">
+      <label>选择玩法</label>
+      <div class="game-select">
+        <button class="game-btn active" data-game="zhajinhua" onclick="selectGame('zhajinhua')">
+          炸金花<span class="sub">3张牌 · 比牌下注</span>
+        </button>
+        <button class="game-btn" data-game="niuniu" onclick="selectGame('niuniu')">
+          斗牛<span class="sub">5张牌 · 倍数下注</span>
+        </button>
+      </div>
+    </div>
+    <button class="btn primary full" onclick="createRoom()">创建房间</button>
+    <div style="height:14px"></div>
+    <div class="field">
+      <label>房间号</label>
+      <input id="roomCode" maxlength="5" placeholder="输入 5 位房间号" style="text-transform:uppercase">
+    </div>
+    <button class="btn full" onclick="joinRoom()">加入房间</button>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="topbar">
+    <div class="chip">房间 <b id="roomLabel">-</b></div>
+    <div class="chip game" id="gameChip">-</div>
+    <div class="chip">底池 <span id="potLabel">0</span></div>
+    <div class="chip" id="betChip">当前注 <span id="betLabel">0</span></div>
+    <div class="chip" id="roundChip">轮次 <span id="roundLabel">1</span></div>
+  </div>
+  <div id="opponents"></div>
+  <div id="meArea"></div>
+  <div id="actions"></div>
+  <div id="log"></div>
+</div>
+
+<div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let state = null;
+let selectedGame = 'zhajinhua';
+const SUITS = ['♠','♥','♣','♦'];
+const RANK_STR = {11:'J',12:'Q',13:'K',14:'A'};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rankStr = r => RANK_STR[r] || r;
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+socket.on('state', s => { state = s; render(); });
+socket.on('toast', toast);
+
+function selectGame(g){
+  selectedGame = g;
+  document.querySelectorAll('.game-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.game === g));
+}
+function createRoom(){
+  const name = $('nickname').value.trim();
+  if (!name) return toast('请先输入昵称');
+  socket.emit('createRoom', { name, gameType: selectedGame }, res => {
+    if (!res.ok) toast(res.msg);
+  });
+}
+function joinRoom(){
+  const name = $('nickname').value.trim();
+  const roomId = $('roomCode').value.trim().toUpperCase();
+  if (!name) return toast('请先输入昵称');
+  if (!roomId) return toast('请输入房间号');
+  socket.emit('joinRoom', { name, roomId }, res => { if (!res.ok) toast(res.msg); });
+}
+$('nickname').addEventListener('keydown', e => { if (e.key === 'Enter') $('roomCode').focus(); });
+$('roomCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+
+function render(){
+  const s = state;
+  if (!s) return;
+  $('lobby').classList.add('hidden');
+  $('game').classList.remove('hidden');
+
+  $('roomLabel').textContent = s.roomId;
+  $('gameChip').textContent = s.gameName || '炸金花';
+  $('potLabel').textContent = s.pot;
+
+  if (s.gameType === 'niuniu'){
+    $('betChip').innerHTML = `底注 <span id="betLabel">${s.ante}</span>`;
+    $('roundChip').innerHTML = `阶段 <span id="roundLabel">${s.state==='playing'?'下注':'摊牌'}</span>`;
+  } else {
+    $('betChip').innerHTML = `当前注 <span id="betLabel">${s.currentBet}</span>`;
+    $('roundChip').innerHTML = `轮次 <span id="roundLabel">${s.round + 1}/${s.maxRounds}</span>`;
+  }
+
+  const cardCount = s.gameType === 'niuniu' ? 5 : 3;
+  const opps = s.players.filter(p => p.id !== s.me.id);
+  $('opponents').innerHTML = opps.map(p => pcardHTML(p, cardCount)).join('');
+  $('meArea').innerHTML = meboxHTML(s.me, cardCount);
+  renderActions(s.me, cardCount);
+  $('log').innerHTML = s.log.map(l => `<div>${esc(l)}</div>`).join('');
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function cardHTML(c, faceUp){
+  if (!c || !faceUp) return `<div class="card back"></div>`;
+  const red = c.s === 1 || c.s === 3;
+  return `<div class="card ${red ? 'red' : ''}">
+    <span>${rankStr(c.r)}</span><span class="s">${SUITS[c.s]}</span>
+  </div>`;
+}
+
+function pcardHTML(p, cardCount){
+  const cls = ['pcard', p.isTurn ? 'turn' : '', p.folded ? 'folded' : ''].join(' ');
+  const badges = [];
+  if (p.isHost) badges.push('<span class="badge">房主</span>');
+  if (p.looked) badges.push('<span class="badge look">已看</span>');
+  let status = '';
+  if (p.folded) status = '已弃牌';
+  else if (p.handName) status = p.handName;
+  else if (p.isTurn) status = '行动中…';
+
+  const cardsHTML = (p.cards && p.cards.length)
+    ? p.cards.map(c => cardHTML(c, true)).join('')
+    : Array.from({length: cardCount}, () => '<div class="card back"></div>').join('');
+
+  return `<div class="${cls}">
+    <div class="name">${esc(p.name)} ${badges.join('')}</div>
+    <div class="chips">💰 ${p.chips}</div>
+    <div class="cards cards-${cardCount}">${cardsHTML}</div>
+    <div class="status">${status}</div>
+  </div>`;
+}
+
+function meboxHTML(me, cardCount){
+  if (!me) return '';
+  const cards = (me.cards || []).map(c => cardHTML(c, me.looked)).join('');
+  return `<div class="mebox">
+    <div class="name">${esc(me.name)} <span class="badge" style="background:#3ecf8e">你</span></div>
+    <div class="cards cards-${cardCount}">${cards || '<span style="color:#7fae9a;font-size:13px">等待发牌…</span>'}</div>
+    <div class="chips">💰 ${me.chips} ${me.cards && me.cards.length && !me.looked ? '· 未看牌' : ''}</div>
+  </div>`;
+}
+
+function renderActions(me, cardCount){
+  const s = state;
+  const box = $('actions');
+
+  if (s.state === 'waiting'){
+    const isHost = s.hostId === s.me.id;
+    box.innerHTML = `<div class="hint">等待房主开始… 房间号：<b>${s.roomId}</b> · 玩法：${s.gameName}</div>` +
+      (isHost ? `<button class="btn primary" onclick="startGame()">开始游戏</button>` : '');
+    return;
+  }
+  if (s.state === 'ended'){
+    const isHost = s.hostId === s.me.id;
+    box.innerHTML = `<div class="hint">本局结束</div>` +
+      (isHost ? `<button class="btn primary" onclick="nextHand()">再来一局</button>` : '');
+    return;
+  }
+  if (!me || me.folded){
+    box.innerHTML = `<div class="hint">你已弃牌，观战中…</div>`;
+    return;
+  }
+  if (!s.me.isTurn){
+    box.innerHTML = `<div class="hint">等待其他玩家行动…</div>`;
+    return;
+  }
+
+  if (s.gameType === 'niuniu'){
+    const ante = s.ante;
+    box.innerHTML = `
+      ${!me.looked ? `<button class="btn" onclick="act('look')">👀 看牌</button>` : ''}
+      ${[1,2,3,4,5].map(m => `
+        <button class="btn nn" onclick="niuBet(${m})" ${me.chips < m*ante ? 'disabled' : ''}>
+          ×${m}<b>${m*ante}</b>
+        </button>`).join('')}
+      <button class="btn danger" onclick="act('fold')">弃牌</button>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    ${!me.looked ? `<button class="btn" onclick="act('look')">👀 看牌</button>` : ''}
+    <button class="btn" onclick="act('call')">跟注 ${me.callAmount}</button>
+    <button class="btn" onclick="toggleRaise()">加注</button>
+    <button class="btn warn" onclick="showCompare()">比牌 ${me.callAmount * 2}</button>
+    <button class="btn danger" onclick="act('fold')">弃牌</button>
+    <div id="raiseBox" class="hidden">
+      <input id="raiseInput" type="number" min="${s.currentBet + 1}"
+        value="${Math.max(s.currentBet * 2, s.currentBet + 10)}">
+      <button class="btn primary" onclick="doRaise()">确认加注</button>
+    </div>
+  `;
+}
+
+function act(type, payload){ socket.emit('action', { type, ...(payload || {}) }); }
+function startGame(){ socket.emit('startGame'); }
+function nextHand(){ socket.emit('nextHand'); }
+function niuBet(m){ act('bet', { amount: m }); }
+function toggleRaise(){ const b = $('raiseBox'); if (b) b.classList.toggle('hidden'); }
+function doRaise(){
+  const v = parseInt($('raiseInput').value, 10);
+  if (!v || v <= state.currentBet) return toast(`加注额必须大于 ${state.currentBet}`);
+  act('raise', { amount: v });
+}
+function showCompare(){
+  const targets = state.players.filter(p => p.id !== state.me.id && !p.folded);
+  if (!targets.length) return toast('没有可比的玩家');
+  if (targets.length === 1) return act('compare', { targetId: targets[0].id });
+  $('modalBox').innerHTML = `<h3>选择比牌对象</h3>` +
+    targets.map(p => `<button class="btn" onclick="pickCompare('${p.id}')">${esc(p.name)}（${p.chips}）</button>`).join('') +
+    `<button class="btn danger" onclick="closeModal()">取消</button>`;
+  $('modal').classList.remove('hidden');
+}
+function pickCompare(id){ closeModal(); act('compare', { targetId: id }); }
+function closeModal(){ $('modal').classList.add('hidden'); }
+</script>
+</body>
+</html>
